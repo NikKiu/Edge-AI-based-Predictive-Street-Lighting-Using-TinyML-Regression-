@@ -12,11 +12,16 @@ const int POT2_PIN = 35; // Simulated Input 2 (object distance)
 const int LDR_PIN  = 32; // Simulated LDR (ambient brightness)
 const int LED_PIN  = 2;  // Simulated street light (PWM)
 
-const char* ssid = "Wokwi-GUEST";
-const char* password = "";
+#ifdef __has_include
+  #if __has_include("secrets.h")
+    #include "secrets.h"
+  #endif
+#endif
 
-unsigned long myChannelNumber = 3437665;
-const char* myWriteAPIKey = "QVXPDIWR83IXXUH8";
+const char* ssid = WIFI_SSID;
+const char* password = WIFI_PASSWORD;
+unsigned long myChannelNumber = THINGSPEAK_CHANNEL;
+const char* myWriteAPIKey = THINGSPEAK_WRITE_API_KEY;
 
 WiFiClient client;
 unsigned long lastLogTime = 0;
