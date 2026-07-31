@@ -2,7 +2,7 @@
 
 ## Overview
 
-This repository contains a ESP32 implementation of a TinyML-based predictive street lighting controller. A trained TensorFlow Lite model is embedded in the firmware (src/model.h). The ESP32 reads three analog inputs (simulated traffic, distance and ambient light), normalizes them to the training range, runs an on-device inference and sets PWM to drive a street-light LED. Data logging to ThingSpeak is included.
+This repository contains an ESP32 implementation of a TinyML-based predictive street lighting controller. A trained TensorFlow Lite model is embedded in the firmware (src/model.h). The ESP32 reads three analog inputs (simulated traffic, distance and ambient light), normalizes them to the training range, runs an on-device inference and sets PWM to drive a street-light LED. Data logging to ThingSpeak is included.
 
 ## Status
 
