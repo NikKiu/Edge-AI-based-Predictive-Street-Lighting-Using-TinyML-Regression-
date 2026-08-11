@@ -1,6 +1,8 @@
 #include <WiFi.h>
 #include <ThingSpeak.h>
 #include <TensorFlowLite_ESP32.h>
+#include <math.h>
+#include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_error_reporter.h"
@@ -41,6 +43,80 @@ TfLiteTensor* output_tensor = nullptr;
 // --- Scaling parameters from Python training (Min/Max) ---
 const float X_min[3] = {29.0f, 15.0f, 97.0f};       // Traffic, Distance, LDR minimum values
 const float X_max[3] = {4013.0f, 3995.0f, 3986.0f}; // Traffic, Distance, LDR maximum values
+
+static void write_quantized_input_value(TfLiteTensor* tensor, int index, float value) {
+  if (tensor == nullptr) {
+    return;
+  }
+
+  if (tensor->type == kTfLiteFloat32) {
+    tensor->data.f[index] = value;
+    return;
+  }
+
+  if (tensor->quantization.type != kTfLiteAffineQuantization ||
+      tensor->quantization.params == nullptr) {
+    Serial.println("Error: input tensor has no affine quantization parameters.");
+    return;
+  }
+
+  TfLiteAffineQuantization* affine =
+      reinterpret_cast<TfLiteAffineQuantization*>(tensor->quantization.params);
+  if (affine->scale == nullptr || affine->scale->size <= 0 ||
+      affine->zero_point == nullptr || affine->zero_point->size <= 0) {
+    Serial.println("Error: quantization scale/zero-point missing.");
+    return;
+  }
+
+  const float scale = affine->scale->data[0];
+  const int32_t zero_point = affine->zero_point->data[0];
+  int32_t quantized = (int32_t)roundf((value / scale) + zero_point);
+
+  if (quantized < -128) quantized = -128;
+  if (quantized > 127) quantized = 127;
+
+  if (tensor->type == kTfLiteUInt8) {
+    if (quantized < 0) quantized = 0;
+    if (quantized > 255) quantized = 255;
+    tensor->data.uint8[index] = (uint8_t)quantized;
+  } else {
+    tensor->data.int8[index] = (int8_t)quantized;
+  }
+}
+
+static float read_quantized_output_value(const TfLiteTensor* tensor, int index) {
+  if (tensor == nullptr) {
+    return 0.0f;
+  }
+
+  if (tensor->type == kTfLiteFloat32) {
+    return tensor->data.f[index];
+  }
+
+  if (tensor->quantization.type != kTfLiteAffineQuantization ||
+      tensor->quantization.params == nullptr) {
+    return 0.0f;
+  }
+
+  TfLiteAffineQuantization* affine =
+      reinterpret_cast<TfLiteAffineQuantization*>(tensor->quantization.params);
+  if (affine->scale == nullptr || affine->scale->size <= 0 ||
+      affine->zero_point == nullptr || affine->zero_point->size <= 0) {
+    return 0.0f;
+  }
+
+  const float scale = affine->scale->data[0];
+  const int32_t zero_point = affine->zero_point->data[0];
+  int32_t quantized = 0;
+
+  if (tensor->type == kTfLiteUInt8) {
+    quantized = tensor->data.uint8[index];
+  } else {
+    quantized = tensor->data.int8[index];
+  }
+
+  return scale * (static_cast<float>(quantized) - static_cast<float>(zero_point));
+}
 
 void setup() {
   Serial.begin(115200);
@@ -103,10 +179,9 @@ int calculate_lighting_level_ml(int pot1, int pot2, int ldr) {
     if (normalized < 0.0f) normalized = 0.0f;
     if (normalized > 1.0f) normalized = 1.0f;
 
-    // Write normalized values into the input tensor
-    // For INT8 models, quantization may be required.
-    // This implementation assumes a Float32 input tensor.
-    input_tensor->data.f[i] = normalized;
+    // Write normalized values into the input tensor using the tensor's
+    // quantization parameters when necessary.
+    write_quantized_input_value(input_tensor, i, normalized);
   }
 
   // 3. Run inference
@@ -115,8 +190,8 @@ int calculate_lighting_level_ml(int pot1, int pot2, int ldr) {
     return 0;
   }
 
-  // 4. Read predicted value
-  float predicted_pwm = output_tensor->data.f[0];
+  // 4. Read predicted value and dequantize it if the output tensor is quantized.
+  float predicted_pwm = read_quantized_output_value(output_tensor, 0);
 
   // 5. Clamp result to valid PWM range [0,255] and round
   int pwm_output = (int)(round(predicted_pwm));
