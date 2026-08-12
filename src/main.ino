@@ -1,7 +1,7 @@
 #include <WiFi.h>
 #include <ThingSpeak.h>
-#include <TensorFlowLite_ESP32.h>
 #include <math.h>
+#include <TensorFlowLite_ESP32.h>
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
@@ -20,10 +20,10 @@ const int LED_PIN  = 2;  // Simulated street light (PWM)
   #endif
 #endif
 
-const char* ssid = WIFI_SSID;
-const char* password = WIFI_PASSWORD;
-unsigned long myChannelNumber = THINGSPEAK_CHANNEL;
-const char* myWriteAPIKey = THINGSPEAK_WRITE_API_KEY;
+const char* ssid = "";
+const char* password = "";
+unsigned long myChannelNumber = "";
+const char* myWriteAPIKey = "";
 
 WiFiClient client;
 unsigned long lastLogTime = 0;
