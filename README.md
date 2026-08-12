@@ -56,13 +56,10 @@ const char* THINGSPEAK_WRITE_API_KEY = "YOUR_WRITE_API_KEY";
 
 Then update src/main.ino to include "secrets.h" and use these constants.
 
-## Build and upload (PlatformIO)
+## Build (PlatformIO)
 
 Using VS Code PlatformIO UI:
 - Open the PlatformIO sidebar (left) -> Project Tasks -> esp32 -> Build
-- After a successful build: Project Tasks -> esp32 -> Upload
 
 Using PlatformIO CLI (from the project root):
 - Build:  platformio run
-- Upload: platformio run -t upload
-- Serial monitor: platformio device monitor -b 115200
