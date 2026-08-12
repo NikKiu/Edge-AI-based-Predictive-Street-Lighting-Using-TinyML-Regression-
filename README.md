@@ -59,7 +59,7 @@ Then update src/main.ino to include "secrets.h" and use these constants.
 ## Build (PlatformIO)
 
 Using VS Code PlatformIO UI:
-- Open the PlatformIO sidebar (left) -> Project Tasks -> esp32 -> Build
+- Open the PlatformIO sidebar (left) -> Project Tasks -> esp32 -> General -> Build
 
 Using PlatformIO CLI (from the project root):
 - Build:  platformio run
